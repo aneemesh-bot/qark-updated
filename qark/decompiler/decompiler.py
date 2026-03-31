@@ -84,16 +84,26 @@ class Decompiler:
         if self.source_code:
             return
 
-        decompiler_pool = ThreadPool(len(self.decompilers))
+        # Run CFR and Procyon in parallel first — they stream files to disk and are memory-light.
+        # Fernflower runs alone afterwards so its JVM does not compete for RAM with the other JVMs.
+        fast_decompilers = [d for d in self.decompilers if d.name != "fernflower"]
+        slow_decompilers = [d for d in self.decompilers if d.name == "fernflower"]
 
-        for decompiler in self.decompilers:
+        if fast_decompilers:
+            decompiler_pool = ThreadPool(len(fast_decompilers))
+            for decompiler in fast_decompilers:
+                if not os.path.isdir(os.path.join(self.build_directory, decompiler.name)):
+                    os.makedirs(os.path.join(self.build_directory, decompiler.name))
+                log.debug("Starting decompilation with %s", decompiler.name)
+                decompiler_pool.apply_async(self._decompiler_function, args=(decompiler,))
+            decompiler_pool.close()
+            decompiler_pool.join()
+
+        for decompiler in slow_decompilers:
             if not os.path.isdir(os.path.join(self.build_directory, decompiler.name)):
                 os.makedirs(os.path.join(self.build_directory, decompiler.name))
-            log.debug("Starting decompilation with %s", decompiler.name)
-            decompiler_pool.apply_async(self._decompiler_function, args=(decompiler,))
-
-        decompiler_pool.close()
-        decompiler_pool.join()
+            log.debug("Starting decompilation with %s (running alone to avoid memory contention)", decompiler.name)
+            self._decompiler_function(decompiler)
 
         jar_name = os.path.split(self.jar_path)[-1]
         unpack_fernflower_jar(self.build_directory, jar_name)
@@ -115,13 +125,17 @@ class Decompiler:
                                       build_directory=self.build_directory))
 
         try:
-            retcode = subprocess.call(shlex.split(decompiler_command))
+            proc = subprocess.run(shlex.split(decompiler_command),
+                                  stderr=subprocess.PIPE, text=True)
+            retcode = proc.returncode
         except Exception:
             log.exception("%s failed to finish decompiling, continuing", decompiler.name)
         else:
             if retcode != 0:
-                log.info("Error running %s", decompiler.name)
+                log.info("Error running %s (exit code %d)", decompiler.name, retcode)
                 log.debug("Decompiler failed with command %s", decompiler_command)
+                if proc.stderr:
+                    log.debug("%s stderr:\n%s", decompiler.name, proc.stderr[-4000:])
 
     def run_apktool(self):
         """

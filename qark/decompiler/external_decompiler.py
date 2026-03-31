@@ -36,7 +36,7 @@ class Fernflower(ExternalDecompiler):
             name="fernflower",
             path_to_decompiler=os.path.join(PATH_TO_DECOMPILERS,
                                             "fernflower.jar"),
-            command="java -Xmx8g -Xss32m -jar {path_to_decompiler} -ren=1 {jar} {build_directory}/fernflower")
+            command="java -Xmx8g -Xss32m -jar {path_to_decompiler} -ren=1 -iib=1 {jar} {build_directory}/fernflower")
 
 
 DECOMPILERS = (CFR(), Procyon(), Fernflower())

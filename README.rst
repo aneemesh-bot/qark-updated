@@ -5,7 +5,7 @@ This tool is designed to look for several security related Android application v
 
 Requirements
 ============
-Tested on Python 2.7.13 and 3.6
+Tested on Python 3.6+ (Python 3.14 verified)
 Tested on OSX, Linux, and Windows
 
 Usage
@@ -79,6 +79,29 @@ Included in the types of security vulnerabilities this tool attempts to find are
 - Apps which are debuggable
 - Apps supporting outdated API versions, with known vulnerabilities
 
+
+Changelog
+=========
+
+2026-03-31
+----------
+
+**Decompilation pipeline — tool upgrades**
+
+- **dex2jar 2.0 → 2.4**: The bundled dex2jar 2.0 (2014) only supported DEX format ≤ 035. Modern APKs use DEX 039/040 and trigger ``DexException: not support version``. Upgraded to dex2jar v2.4 which handles current DEX formats. The decompiler now passes the APK directly to dex2jar (instead of extracting ``classes.dex`` first), enabling automatic multi-dex support — all ``classes*.dex`` files are merged into a single output JAR.
+- **apktool 2.3.1 → 3.0.1**: Updated to the latest stable release with support for API 36.1 (Baklava) and improved multi-dex container handling. The deprecated ``--match-original`` (``-m``) flag was removed from the invocation command.
+- **CFR 0.124 → 0.152**: Updated to the latest CFR release with improved support for modern Java bytecode constructs.
+- **Procyon 1.0 → 0.6.0**: Updated to the current stable release of the Procyon decompiler.
+- **fernflower → Vineflower 1.10.1**: Replaced the bundled 2015-era IntelliJ fernflower JAR with Vineflower 1.10.1, a community-maintained fork. This fixes a known ``StackOverflowError`` caused by infinite mutual recursion in ``getCastTypeName`` when decompiling deeply nested generic types. Vineflower is a drop-in replacement (same CLI interface).
+
+**Decompilation pipeline — stability fixes**
+
+- **Fernflower memory isolation**: CFR and Procyon now run in parallel first (they stream output to disk and are memory-light). Fernflower runs sequentially *after* they finish, giving its JVM exclusive access to the full heap and eliminating RAM contention between three simultaneous JVM processes. This fixes intermittent ``ZipException: zip END header not found`` errors caused by fernflower being OOM-killed mid-write.
+- **Fernflower JVM flags**: Added ``-Xmx8g -Xss32m`` to the fernflower invocation. The increased heap prevents OOM on large APKs; the enlarged stack prevents ``StackOverflowError`` on deeply recursive type resolution.
+- **Vineflower** ``-iib=1`` **flag**: Instructs the decompiler to skip classes with invalid bytecode (e.g. heavily obfuscated or malformed classes) rather than retrying them indefinitely, reducing heap pressure on large APKs.
+- **Fernflower output validation**: Before running ``jar xf`` on the fernflower output JAR, the code now checks that the file exists and passes ``zipfile.is_zipfile()``; a corrupt or incomplete JAR is skipped with a clear warning instead of raising an unhandled exception.
+- **Decompiler stderr capture**: Switched from ``subprocess.call`` to ``subprocess.run(stderr=subprocess.PIPE)`` for all decompilers. On non-zero exit the last 4000 characters of stderr are logged at DEBUG level, making failures diagnosable without needing to re-run manually.
+- **setup.py package_data**: Updated ``package_data`` entries to reference ``dex-tools-v2.4`` (was ``dex2jar-2.0``) so that ``pip install .`` correctly copies the new dex2jar binaries into site-packages.
 
 Notice
 ======
