@@ -15,10 +15,10 @@ from qark.utils import is_java_file
 log = logging.getLogger(__name__)
 
 OS = platform.system()
-JAVA_VERSION_REGEX = '((\d+\.\d+)(\.\d+)?)'
+JAVA_VERSION_REGEX = r'((\d+\.\d+)(\.\d+)?)'
 APK_TOOL_PATH = os.path.join(LIB_PATH, "apktool")
 
-DEX2JAR_NAME = "dex2jar-2.0"
+DEX2JAR_NAME = "dex-tools-v2.4"
 DEX2JAR_PATH = os.path.join(LIB_PATH, DEX2JAR_NAME)
 DEX2JAR_EXTENSION = "sh" if OS != "Windows" else "bat"
 DEX2JAR_EXECUTABLE = "d2j-dex2jar.{extension}".format(extension=DEX2JAR_EXTENSION)
@@ -27,21 +27,19 @@ DEX2JAR_INVOKE = "d2j_invoke.{extension}".format(extension=DEX2JAR_EXTENSION)
 DECOMPILERS_PATH = os.path.join(LIB_PATH, "decompilers")
 
 APK_TOOL_COMMAND = ("java -Djava.awt.headless=true -jar {apktool_path}/apktool.jar "
-                    "d {path_to_source} --no-src --force -m --output {build_directory}")
-DEX2JAR_COMMAND = "{dex2jar_path} {path_to_dex} -o {build_apk}.jar"
+                    "d {path_to_source} --no-src --force --output {build_directory}")
+# Pass the APK directly so dex2jar handles all classes*.dex files (multi-dex support)
+DEX2JAR_COMMAND = "{dex2jar_path} {path_to_apk} -o {build_apk}.jar"
 
 
 def escape_windows_path(path):
     if "\\" in path and OS == "Windows":
-        try:
-            path = path.encode('string-escape')
-        except Exception:
-            path = path.encode('unicode-escape')
+        path = path.encode('unicode-escape').decode('ascii')
 
     return path
 
 
-class Decompiler(object):
+class Decompiler:
     """This class handles unpacking and decompiling APKs into Java source code.
 
     New compilers can be added by adding the command to run the compiler to the `DECOMPILER_COMMANDS` dictionary and
@@ -183,21 +181,17 @@ class Decompiler(object):
         return os.path.join(self.build_directory, "classes.dex")
 
     def _run_dex2jar(self):
-        """Runs dex2jar in the lib on the dex file.
+        """Runs dex2jar in the lib on the APK file.
 
-        If `self.dex_path` is None or empty it will run `_unpack_apk` to get a value for it.
+        Passes the APK directly to dex2jar so that all classes*.dex files (multi-dex)
+        are merged into a single output jar automatically.
         """
-        # dex_path should always be set if being called through run
-        if not self.dex_path:
-            log.debug("Path to .dex file not found, unpacking APK")
-            self.dex_path = self._unpack_apk()
-
         configure_dex2jar()
 
         dex2jar_command = escape_windows_path(DEX2JAR_COMMAND.format(dex2jar_path=os.path.join(DEX2JAR_PATH,
                                                                                                "d2j-dex2jar.{extension}".format(
                                                                                                    extension=DEX2JAR_EXTENSION)),
-                                                                     path_to_dex=self.dex_path,
+                                                                     path_to_apk=self.path_to_source,
                                                                      build_apk=os.path.join(self.build_directory,
                                                                                             self.apk_name)))
 
@@ -287,10 +281,22 @@ def configure_dex2jar():
 def unpack_fernflower_jar(build_directory, jar_name):
     """Fernflower puts its decompiled code back into a jar so we need to unpack it."""
     previous_dir = os.getcwd()
+    fernflower_dir = os.path.join(build_directory, "fernflower")
+    output_jar = os.path.join(fernflower_dir, jar_name)
     command = ["jar", "xf", jar_name]
 
+    if not os.path.isfile(output_jar):
+        log.warning("Fernflower output JAR not found at %s; fernflower likely failed — skipping extraction", output_jar)
+        return
+
+    if not zipfile.is_zipfile(output_jar):
+        log.warning("Fernflower output JAR %s is corrupt or incomplete (no ZIP END header); "
+                    "fernflower likely ran out of memory — skipping extraction. "
+                    "Try increasing heap with -Xmx in the fernflower command.", output_jar)
+        return
+
     try:
-        os.chdir(os.path.join(build_directory, "fernflower"))
+        os.chdir(fernflower_dir)
         retcode = subprocess.call(command)
     except Exception:
         log.exception("Failed to extract fernflower jar with command '%s'", " ".join(command))

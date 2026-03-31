@@ -51,7 +51,7 @@ def write_key_value_to_string_array_xml(array_name, value, path, add_id=True):
     for string_array in strings_xml.findall("string-array"):
         if string_array.attrib.get("name") == array_name:
             if add_id:
-                for child in string_array.getchildren():
+                for child in list(string_array):
                     last_id = child.text.split(value)[1]
                 value = "{value}{id}".format(value=value, id=int(last_id)+1)
 

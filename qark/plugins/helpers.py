@@ -2,7 +2,6 @@ import logging
 import os
 import re
 import shutil
-from io import open
 
 from javalang.tree import MethodInvocation
 

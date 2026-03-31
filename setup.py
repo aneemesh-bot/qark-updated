@@ -16,15 +16,15 @@ with io.open('README.rst', 'rt', encoding='utf8') as f:
 
 setup(
     name="qark",
-    version="4.0.0",
+    version="5.0.0",
     packages=find_packages(exclude=["tests*"]),
     package_dir={QARK_DIR: QARK_DIR},
     package_data={
         QARK_DIR: [
             os.path.join("lib", "decompilers", "*.jar"),  # include any decompiler jar files
             os.path.join("lib", "apktool", "*.jar"),  # include apktool
-            os.path.join("lib", "dex2jar-2.0", "*"),  # include dex2jar
-            os.path.join("lib", "dex2jar-2.0", "lib", "*"),  # include dex2jar
+            os.path.join("lib", "dex-tools-v2.4", "*"),  # include dex2jar
+            os.path.join("lib", "dex-tools-v2.4", "lib", "*"),  # include dex2jar
             os.path.join("templates", "*.jinja"),  # include the reporting template files
         ] + exploit_apk_files,  # include all the java files required for creating an exploit APK
     },
@@ -32,10 +32,8 @@ setup(
         "requests[security]",
         "pluginbase",
         "jinja2",
-        "enum34; python_version < '3.4'",
         "javalang",
         "click",
-        "six",
     ],
     # metadata for upload to PyPI
     author="Tushar Dalvi & Tony Trummer",
@@ -48,6 +46,7 @@ setup(
     entry_points="""
         [console_scripts]
         qark=qark.qark:cli""",
+    python_requires=">=3.9",
     classifiers=[
         "Development Status :: 4 - Beta",
         "Environment :: Console",
@@ -55,7 +54,10 @@ setup(
         "Operating System :: MacOS",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: Unix",
-        "Programming Language :: Python :: 2.7",
-        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ]
 )

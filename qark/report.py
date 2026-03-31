@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from os import path
 
 from jinja2 import Environment, PackageLoader, select_autoescape, Template
@@ -18,7 +16,7 @@ jinja_env = Environment(
 jinja_env.filters['issue_json'] = issue_json
 
 
-class Report(object):
+class Report:
     """An object to store issues against and to generate reports in different formats.
 
     There is one instance created per QARK run and it uses a classic Singleton pattern

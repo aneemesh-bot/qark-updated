@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from os import (
     walk,
@@ -18,7 +16,7 @@ log = logging.getLogger(__name__)
 PLUGIN_CATEGORIES = ("manifest", "broadcast", "file", "crypto", "intent", "cert", "webview", "generic")
 
 
-class Scanner(object):
+class Scanner:
 
     def __init__(self, manifest_path, path_to_source):
         """
@@ -102,7 +100,7 @@ class Scanner(object):
             log.debug("Decompiler does not have a build directory")
 
 
-class Subject(object):
+class Subject:
     """"""
 
     def __init__(self):

@@ -1,0 +1,4 @@
+-r requirements_to_freeze.txt
+pytest
+pytest-cov
+flake8

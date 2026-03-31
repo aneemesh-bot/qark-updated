@@ -1,13 +1,10 @@
-from __future__ import absolute_import
-
+import configparser
 import logging
 import os
 import shlex
 import shutil
 import subprocess
-
-from six import StringIO
-from six.moves import configparser
+from io import StringIO
 
 from qark.plugins.helpers import copy_directory_to_location
 from qark.plugins.manifest_helpers import get_package_from_manifest
@@ -26,7 +23,7 @@ COMPONENT_ENTRIES = {"activity": ("onCreate", "onStart"),
 EXPLOIT_APK_TEMPLATE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "exploit_apk")
 
 
-class APKBuilder(object):
+class APKBuilder:
     __instance = None
 
     def __new__(cls, exploit_apk_path, issues, apk_name, manifest_path, sdk_path):
@@ -150,7 +147,7 @@ class APKBuilder(object):
             config.write(properties_file.read().replace('%', '%%'))
             config.seek(0, os.SEEK_SET)
 
-            cp = configparser.SafeConfigParser()
-            cp.readfp(config)
+            cp = configparser.ConfigParser()
+            cp.read_file(config)
 
             return dict(cp.items('dummy_section'))

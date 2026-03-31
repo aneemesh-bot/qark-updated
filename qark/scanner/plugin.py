@@ -48,15 +48,14 @@ def get_plugins(category=None):
     return [plugin for plugin in plugins if plugin not in BLACKLISTED_PLUGIN_MODULES]
 
 
-class BasePlugin(object):
-    __metaclass__ = abc.ABCMeta
+class BasePlugin(metaclass=abc.ABCMeta):
 
     def __init__(self, name, category, description=None, **kwargs):
         self.category = category
         self.name = name
         self.description = description
 
-        super(BasePlugin, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.issues = []
 
@@ -72,8 +71,7 @@ class BasePlugin(object):
         raise NotImplementedError()
 
 
-class PluginObserver(BasePlugin):
-    __metaclass__ = abc.ABCMeta
+class PluginObserver(BasePlugin, metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def update(self, *args, **kwargs):
@@ -84,9 +82,8 @@ class PluginObserver(BasePlugin):
         """Clear any class attributes that were set for the file."""
 
 
-class FilePathPlugin(PluginObserver):
+class FilePathPlugin(PluginObserver, metaclass=abc.ABCMeta):
     """Subclass this plugin if your plugin needs action based on a new file path."""
-    __metaclass__ = abc.ABCMeta
 
     file_path = None
     has_been_set = False
@@ -113,9 +110,8 @@ class FilePathPlugin(PluginObserver):
         FilePathPlugin.has_been_set = False
 
 
-class FileContentsPlugin(FilePathPlugin):
+class FileContentsPlugin(FilePathPlugin, metaclass=abc.ABCMeta):
     """Subclass this plugin if your plugin needs to operate on file contents and no other plugin type suffices."""
-    __metaclass__ = abc.ABCMeta
 
     file_contents = None
     readable = True
@@ -130,7 +126,7 @@ class FileContentsPlugin(FilePathPlugin):
 
         if self.file_contents is None:
             # Make sure the file path has been set.
-            super(FileContentsPlugin, self).update(file_path)
+            super().update(file_path)
 
             try:
                 with open(self.file_path, "r") as f:
@@ -163,11 +159,10 @@ class FileContentsPlugin(FilePathPlugin):
         FileContentsPlugin.file_contents = None
         FileContentsPlugin.readable = True
 
-        super(FileContentsPlugin, cls).reset()
+        super().reset()
 
 
-class JavaASTPlugin(FileContentsPlugin):
-    __metaclass__ = abc.ABCMeta
+class JavaASTPlugin(FileContentsPlugin, metaclass=abc.ABCMeta):
 
     java_ast = None
     parseable = True
@@ -178,7 +173,7 @@ class JavaASTPlugin(FileContentsPlugin):
 
         if self.java_ast is None and is_java_file(file_path):
             # Make sure the file contents have been set
-            super(JavaASTPlugin, self).update(file_path, call_run=False)
+            super().update(file_path, call_run=False)
 
             if self.file_contents:
                 try:
@@ -200,7 +195,7 @@ class JavaASTPlugin(FileContentsPlugin):
         JavaASTPlugin.java_ast = None
         JavaASTPlugin.parseable = True
 
-        super(JavaASTPlugin, cls).reset()
+        super().reset()
 
 
 class CoroutinePlugin(JavaASTPlugin):
@@ -236,11 +231,10 @@ class CoroutinePlugin(JavaASTPlugin):
 
     def update(self, file_path, call_run=False):
         """Updates the AST information but does not attempt to run since that is handled by the scanner."""
-        super(CoroutinePlugin, self).update(file_path)
+        super().update(file_path)
 
 
-class ManifestPlugin(BasePlugin):
-    __metaclass__ = abc.ABCMeta
+class ManifestPlugin(BasePlugin, metaclass=abc.ABCMeta):
 
     manifest_xml = None
     manifest_path = None
